@@ -12,6 +12,7 @@ CALL = 0b01010000
 RET = 0b00010001
 ADD = 0b10100000
 CMP = 0b10100111
+JMP = 0b01010100
 
 class CPU:
     """Main CPU class."""
@@ -35,6 +36,7 @@ class CPU:
         self.branchtable[RET] = self.handle_RET
         self.branchtable[ADD] = self.handle_ADD
         self.branchtable[CMP] = self.handle_CMP
+        self.branchtable[JMP] = self.handle_JMP
         self.flag = 0b00000000
 
     # `ram_read()` should accept the address to read and return the value stored there  
@@ -187,6 +189,10 @@ class CPU:
     def handle_CMP(self, op_id1, op_id2):
         self.alu("CMP",op_id1, op_id2)
         self.op_pc = False
+        
+    def handle_JMP(self, op_id1, op_id2):
+        self.pc = self.reg[op_id1]
+        self.op_pc = True
         
         
 
