@@ -13,6 +13,8 @@ RET = 0b00010001
 ADD = 0b10100000
 CMP = 0b10100111
 JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 class CPU:
     """Main CPU class."""
@@ -37,6 +39,8 @@ class CPU:
         self.branchtable[ADD] = self.handle_ADD
         self.branchtable[CMP] = self.handle_CMP
         self.branchtable[JMP] = self.handle_JMP
+        self.branchtable[JEQ] = self.handle_JEQ
+        self.branchtable[JNE] = self.handle_JNE
         self.flag = 0b00000000
 
     # `ram_read()` should accept the address to read and return the value stored there  
@@ -91,7 +95,7 @@ class CPU:
                 self.flag = 0b00000100
             elif self.reg[reg_a] > self.reg[reg_b]:
                 self.flag = 0b00000010
-            elif self.reg[reg_a] > self.reg[reg_b]:
+            elif self.reg[reg_a] == self.reg[reg_b]:
                 self.flag = 0b00000001    
         else:
             raise Exception("Unsupported ALU operation")
@@ -126,50 +130,44 @@ class CPU:
             IR = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
+            
             if IR in self.branchtable:
                 self.branchtable[IR](operand_a, operand_b)
             else:
                 print(f"Unknown Instruction")
                 sys.exit(1)
+                
+            instruction_size = (( IR >> 6) & 0b11) + 1
+
+            if not self.op_pc:
+                self.pc += instruction_size
 
     
     def handle_LDI(self, op_id1, op_id2):
         self.reg[op_id1] = op_id2
         self.op_pc = False
-        if not self.op_pc:
-            self.pc += 3
 
     def handle_PRN(self, op_id1, op_id2):
         print(self.reg[op_id1])
         self.op_pc = False
-        if not self.op_pc:
-            self.pc += 2
 
     def handle_MUL(self, op_id1, op_id2):
         self.alu("MUL",op_id1, op_id2)
         self.op_pc = False
-        if not self.op_pc:
-            self.pc += 3 
     
     def handle_ADD(self, op_id1, op_id2):
         self.alu("ADD",op_id1, op_id2)
         self.op_pc = False
-        if not self.op_pc:
-            self.pc += 3 
     
     def handle_PUSH(self, op_id1, op_id2):
         self.reg[self.sp] -= 1
         self.ram[self.reg[self.sp]] = self.reg[op_id1]
         self.op_pc = False
-        if not self.op_pc:
-            self.pc += 2
 
     def handle_POP(self, op_id1, op_id2):
         self.reg[op_id1] = self.ram_read(self.reg[self.sp])
         self.reg[self.sp] += 1
         self.op_pc = False
-        if not self.op_pc:
-            self.pc += 2
 
     def handle_HLT(self, op_id1, op_id2):
         sys.exit()
@@ -193,6 +191,20 @@ class CPU:
     def handle_JMP(self, op_id1, op_id2):
         self.pc = self.reg[op_id1]
         self.op_pc = True
+        
+    def handle_JEQ(self, op_id1, op_id2):
+        if self.flag == 0b00000001:
+            self.pc = self.reg[op_id1]
+            self.op_pc = True
+        else:
+            self.op_pc = False
+            
+    def handle_JNE(self, op_id1, op_id2):
+        if self.flag == 0b00000010 or self.flag == 0b00000100:
+            self.pc = self.reg[op_id1]
+            self.op_pc = True
+        else:
+            self.op_pc = False
         
         
 
